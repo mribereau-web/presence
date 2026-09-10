@@ -1,21 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Présences Chorale</title>
 
-<script src="https://unpkg.com/html5-qrcode"
-        type="text/javascript">
-</script>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
-
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -67,17 +60,13 @@ h1 {
 .voice {
     font-size: 20px;
 }
-
 </style>
-
 </head>
 
 <body>
 
 <header>
-
-<h1>🎵 Présences Chorale</h1>
-
+    <h1>🎵 Présences Chorale</h1>
 </header>
 
 <div id="scanner"></div>
@@ -91,11 +80,32 @@ h1 {
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbztFWFsDYbWyVng9hSDd6vvtMnU_i9kLvXgweqGoTR-LXg3prTVcWehyo_CcaUpNnEmlg/exec";
 
-
 let scanner;
 let dernierScan = null;
 let scanEnCours = false;
 
+
+/* =========================
+   CALLBACK GOOGLE
+========================= */
+
+window.presenceCallback = function(data) {
+
+    console.log("Réponse Google :", data);
+
+    afficherResultat(data);
+
+    const script = document.getElementById("google-script");
+
+    if (script) {
+        script.remove();
+    }
+};
+
+
+/* =========================
+   AFFICHAGE
+========================= */
 
 function afficherResultat(data) {
 
@@ -105,13 +115,9 @@ function afficherResultat(data) {
 
         result.className = "success";
 
-        let message = "";
-
-        if (data.duplicate) {
-            message = "⚠️ Présence déjà enregistrée";
-        } else {
-            message = "✅ Présence enregistrée";
-        }
+        let message = data.duplicate
+            ? "⚠️ Présence déjà enregistrée"
+            : "✅ Présence enregistrée";
 
         result.innerHTML = `
             <div class="name">
@@ -124,26 +130,20 @@ function afficherResultat(data) {
 
             <br>
 
-            <div>
-                ${message}
-            </div>
+            <div>${message}</div>
         `;
 
     } else {
 
         result.className = "error";
 
-        result.innerHTML =
-            "❌ " + data.message;
+        result.innerHTML = "❌ " + data.message;
     }
-
 
     setTimeout(() => {
 
         result.className = "";
-
-        result.innerHTML =
-            "Scannez un QR code";
+        result.innerHTML = "Scannez un QR code";
 
         scanEnCours = false;
 
@@ -151,52 +151,56 @@ function afficherResultat(data) {
 }
 
 
+/* =========================
+   TRAITEMENT DU QR CODE
+========================= */
+
 function traiterQR(qrCodeMessage) {
 
-    if (scanEnCours) {
-        return;
-    }
+    if (scanEnCours) return;
 
-    if (dernierScan === qrCodeMessage) {
-        return;
-    }
+    if (dernierScan === qrCodeMessage) return;
 
     scanEnCours = true;
+
     dernierScan = qrCodeMessage;
 
-
-    const callbackName =
-        "callback_" + Date.now();
+    console.log("QR détecté :", qrCodeMessage);
 
 
-    window[callbackName] = function(data) {
+    /* Suppression d'un ancien script éventuel */
 
-        afficherResultat(data);
+    const ancienScript = document.getElementById("google-script");
 
-        delete window[callbackName];
+    if (ancienScript) {
+        ancienScript.remove();
+    }
 
-    };
 
+    /* Création de l'appel Google */
 
-    const script =
-        document.createElement("script");
+    const script = document.createElement("script");
 
+    script.id = "google-script";
 
     script.src =
         APPS_SCRIPT_URL +
         "?id=" +
         encodeURIComponent(qrCodeMessage) +
-        "&callback=" +
-        callbackName;
+        "&callback=presenceCallback&_=" +
+        Date.now();
 
 
     script.onerror = function() {
+
+        console.error("Erreur lors de l'appel Google");
+
+        document.getElementById("result").className = "error";
 
         document.getElementById("result").innerHTML =
             "❌ Impossible de contacter le serveur";
 
         scanEnCours = false;
-
     };
 
 
@@ -211,6 +215,10 @@ function traiterQR(qrCodeMessage) {
 }
 
 
+/* =========================
+   SCANNER
+========================= */
+
 scanner = new Html5QrcodeScanner(
     "scanner",
     {
@@ -223,16 +231,14 @@ scanner = new Html5QrcodeScanner(
     false
 );
 
-
 scanner.render(
     traiterQR,
     function(errorMessage) {
-        // Les erreurs de scan sont normales
+        // Les erreurs normales de détection sont ignorées
     }
 );
 
 </script>
 
 </body>
-
 </html>
