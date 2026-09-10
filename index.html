@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 
 <head>
@@ -87,14 +86,10 @@ h1 {
     Scannez un QR code
 </div>
 
-
 <script>
 
-// IMPORTANT : remplacer cette adresse
-// par l'adresse de votre Web App Apps Script
-
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbzhS0cG7ASv2IMpYmEeTJk0r-jgMB3l7o93LgB5vut5K7KNGsNE3xI8YM6C-1dvCs5olQ/exec";
+"https://script.google.com/macros/s/AKfycbztFWFsDYbWyVng9hSDd6vvtMnU_i9kLvXgweqGoTR-LXg3prTVcWehyo_CcaUpNnEmlg/exec";
 
 
 let scanner;
@@ -142,7 +137,6 @@ function afficherResultat(data) {
             "❌ " + data.message;
     }
 
-    // Retour à l'état normal après 2 secondes
 
     setTimeout(() => {
 
@@ -170,11 +164,10 @@ function traiterQR(qrCodeMessage) {
     scanEnCours = true;
     dernierScan = qrCodeMessage;
 
-    // Appel vers Google Apps Script
-    // JSONP pour éviter les problèmes de CORS
 
     const callbackName =
         "callback_" + Date.now();
+
 
     window[callbackName] = function(data) {
 
@@ -184,8 +177,10 @@ function traiterQR(qrCodeMessage) {
 
     };
 
+
     const script =
         document.createElement("script");
+
 
     script.src =
         APPS_SCRIPT_URL +
@@ -194,23 +189,27 @@ function traiterQR(qrCodeMessage) {
         "&callback=" +
         callbackName;
 
+
     script.onerror = function() {
 
         document.getElementById("result").innerHTML =
             "❌ Impossible de contacter le serveur";
 
         scanEnCours = false;
+
     };
+
 
     document.body.appendChild(script);
 
+
     setTimeout(() => {
+
         dernierScan = null;
+
     }, 3000);
 }
 
-
-// Initialisation du scanner
 
 scanner = new Html5QrcodeScanner(
     "scanner",
@@ -223,6 +222,7 @@ scanner = new Html5QrcodeScanner(
     },
     false
 );
+
 
 scanner.render(
     traiterQR,
