@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Présences Chorale</title>
+
+<script src="https://unpkg.com/html5-qrcode"
+        type="text/javascript">
+</script>
+
+<style>
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    text-align: center;
+}
+
+header {
+    background: #222;
+    color: white;
+    padding: 20px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+#scanner {
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+    background: white;
+}
+
+#result {
+    margin: 20px auto;
+    max-width: 500px;
+    padding: 20px;
+    border-radius: 12px;
+    background: white;
+    font-size: 20px;
+}
+
+.success {
+    background: #d9f7df !important;
+}
+
+.error {
+    background: #ffdede !important;
+}
+
+.name {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.voice {
+    font-size: 20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1>🎵 Présences Chorale</h1>
+
+</header>
+
+<div id="scanner"></div>
+
+<div id="result">
+    Scannez un QR code
+</div>
+
+
+<script>
+
+// IMPORTANT : remplacer cette adresse
+// par l'adresse de votre Web App Apps Script
+
+const APPS_SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbzhS0cG7ASv2IMpYmEeTJk0r-jgMB3l7o93LgB5vut5K7KNGsNE3xI8YM6C-1dvCs5olQ/exec";
+
+
+let scanner;
+let dernierScan = null;
+let scanEnCours = false;
+
+
+function afficherResultat(data) {
+
+    const result = document.getElementById("result");
+
+    if (data.success) {
+
+        result.className = "success";
+
+        let message = "";
+
+        if (data.duplicate) {
+            message = "⚠️ Présence déjà enregistrée";
+        } else {
+            message = "✅ Présence enregistrée";
+        }
+
+        result.innerHTML = `
+            <div class="name">
+                ${data.prenom} ${data.nom}
+            </div>
+
+            <div class="voice">
+                ${data.voix || ""}
+            </div>
+
+            <br>
+
+            <div>
+                ${message}
+            </div>
+        `;
+
+    } else {
+
+        result.className = "error";
+
+        result.innerHTML =
+            "❌ " + data.message;
+    }
+
+    // Retour à l'état normal après 2 secondes
+
+    setTimeout(() => {
+
+        result.className = "";
+
+        result.innerHTML =
+            "Scannez un QR code";
+
+        scanEnCours = false;
+
+    }, 2000);
+}
+
+
+function traiterQR(qrCodeMessage) {
+
+    if (scanEnCours) {
+        return;
+    }
+
+    if (dernierScan === qrCodeMessage) {
+        return;
+    }
+
+    scanEnCours = true;
+    dernierScan = qrCodeMessage;
+
+    // Appel vers Google Apps Script
+    // JSONP pour éviter les problèmes de CORS
+
+    const callbackName =
+        "callback_" + Date.now();
+
+    window[callbackName] = function(data) {
+
+        afficherResultat(data);
+
+        delete window[callbackName];
+
+    };
+
+    const script =
+        document.createElement("script");
+
+    script.src =
+        APPS_SCRIPT_URL +
+        "?id=" +
+        encodeURIComponent(qrCodeMessage) +
+        "&callback=" +
+        callbackName;
+
+    script.onerror = function() {
+
+        document.getElementById("result").innerHTML =
+            "❌ Impossible de contacter le serveur";
+
+        scanEnCours = false;
+    };
+
+    document.body.appendChild(script);
+
+    setTimeout(() => {
+        dernierScan = null;
+    }, 3000);
+}
+
+
+// Initialisation du scanner
+
+scanner = new Html5QrcodeScanner(
+    "scanner",
+    {
+        fps: 10,
+        qrbox: {
+            width: 250,
+            height: 250
+        }
+    },
+    false
+);
+
+scanner.render(
+    traiterQR,
+    function(errorMessage) {
+        // Les erreurs de scan sont normales
+    }
+);
+
+</script>
+
+</body>
+
+</html>
