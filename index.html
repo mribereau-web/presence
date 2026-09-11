@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -26,6 +27,18 @@ header {
 h1 {
     margin: 0;
     font-size: 24px;
+}
+
+#startButton {
+    display: block;
+    margin: 25px auto;
+    padding: 16px 28px;
+    font-size: 20px;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    background: #222;
+    color: white;
 }
 
 #scanner {
@@ -52,16 +65,8 @@ h1 {
     background: #ffdede !important;
 }
 
-.name {
-    font-size: 28px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.voice {
-    font-size: 20px;
-}
 </style>
+
 </head>
 
 <body>
@@ -70,10 +75,14 @@ h1 {
     <h1>🎵 Présences Chorale</h1>
 </header>
 
+<button id="startButton">
+    📷 Démarrer la caméra
+</button>
+
 <div id="scanner"></div>
 
 <div id="result">
-    Scannez un QR code
+    Appuyez sur « Démarrer la caméra »
 </div>
 
 
@@ -82,12 +91,75 @@ h1 {
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbztFWFsDYbWyVng9hSDd6vvtMnU_i9kLvXgweqGoTR-LXg3prTVcWehyo_CcaUpNnEmlg/exec";
 
+
+let scanner = null;
 let dernierScan = null;
 let scanEnCours = false;
 
 
 /* =========================
-   ENVOI DU QR À GOOGLE
+   DÉMARRAGE CAMÉRA
+========================= */
+
+document.getElementById("startButton").addEventListener("click", function() {
+
+    const button = this;
+
+    button.disabled = true;
+    button.innerText = "📷 Démarrage...";
+
+    document.getElementById("result").innerHTML =
+        "Autorisation de la caméra...";
+
+
+    scanner = new Html5Qrcode("scanner");
+
+
+    scanner.start(
+        { facingMode: "environment" },
+
+        {
+            fps: 10,
+            qrbox: {
+                width: 250,
+                height: 250
+            }
+        },
+
+        traiterQR,
+
+        function(errorMessage) {
+            // Les erreurs normales de détection sont ignorées
+        }
+
+    ).then(function() {
+
+        button.style.display = "none";
+
+        document.getElementById("result").innerHTML =
+            "📷 Caméra active — présentez un QR code";
+
+    }).catch(function(error) {
+
+        console.error(error);
+
+        button.disabled = false;
+
+        button.innerText = "📷 Réessayer";
+
+        document.getElementById("result").className = "error";
+
+        document.getElementById("result").innerHTML =
+            "❌ Impossible d'ouvrir la caméra.<br><br>" +
+            "Vérifiez que Safari a l'autorisation d'utiliser l'appareil photo.";
+
+    });
+
+});
+
+
+/* =========================
+   QR CODE
 ========================= */
 
 function traiterQR(qrCodeMessage) {
@@ -100,16 +172,15 @@ function traiterQR(qrCodeMessage) {
     dernierScan = qrCodeMessage;
 
 
-    const result = document.getElementById("result");
+    document.getElementById("result").className = "";
 
-    result.className = "";
-    result.innerHTML =
+    document.getElementById("result").innerHTML =
         "📡 Enregistrement de la présence...";
 
 
-    /*
-       Création d'un formulaire invisible
-    */
+    /* =========================
+       ENVOI À GOOGLE
+    ========================= */
 
     const form = document.createElement("form");
 
@@ -136,12 +207,11 @@ function traiterQR(qrCodeMessage) {
     document.body.appendChild(form);
 
 
-    /*
-       Iframe invisible qui reçoit
-       la réponse Google
-    */
+    /* iframe invisible */
 
-    let iframe = document.getElementById("googleResponse");
+    let iframe =
+        document.getElementById("googleResponse");
+
 
     if (!iframe) {
 
@@ -161,20 +231,19 @@ function traiterQR(qrCodeMessage) {
     form.submit();
 
 
-    /*
-       On considère l'enregistrement
-       effectué après un court délai.
-    */
+    /* =========================
+       CONFIRMATION
+    ========================= */
 
     setTimeout(function() {
 
-        result.className = "success";
+        document.getElementById("result").className =
+            "success";
 
-        result.innerHTML =
+        document.getElementById("result").innerHTML =
             "✅ Présence envoyée<br><br>" +
             "ID : " +
             qrCodeMessage;
-
 
         scanEnCours = false;
 
@@ -185,39 +254,14 @@ function traiterQR(qrCodeMessage) {
 
         dernierScan = null;
 
-        result.className = "";
+        document.getElementById("result").className = "";
 
-        result.innerHTML =
-            "Scannez un QR code";
+        document.getElementById("result").innerHTML =
+            "📷 Présentez un QR code";
 
     }, 3500);
 
 }
-
-
-/* =========================
-   SCANNER
-========================= */
-
-const scanner = new Html5QrcodeScanner(
-    "scanner",
-    {
-        fps: 10,
-        qrbox: {
-            width: 250,
-            height: 250
-        }
-    },
-    false
-);
-
-
-scanner.render(
-    traiterQR,
-    function(errorMessage) {
-        // Les erreurs normales de détection sont ignorées
-    }
-);
 
 </script>
 
