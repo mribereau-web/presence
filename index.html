@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Présences Chorale</title>
+<title>Test Présences Chorale</title>
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -24,7 +26,7 @@ header {
 
 h1 {
     margin: 0;
-    font-size: 24px;
+    font-size: 22px;
 }
 
 #scanner {
@@ -35,12 +37,12 @@ h1 {
 }
 
 #result {
-    margin: 20px auto;
-    max-width: 500px;
+    margin: 20px;
     padding: 20px;
     border-radius: 12px;
     background: white;
-    font-size: 20px;
+    font-size: 18px;
+    word-break: break-word;
 }
 
 .success {
@@ -51,22 +53,26 @@ h1 {
     background: #ffdede !important;
 }
 
-.name {
-    font-size: 28px;
-    font-weight: bold;
-    margin-bottom: 10px;
+#debug {
+    margin: 20px;
+    padding: 15px;
+    background: #222;
+    color: #00ff66;
+    text-align: left;
+    font-family: monospace;
+    font-size: 14px;
+    border-radius: 8px;
+    white-space: pre-wrap;
 }
 
-.voice {
-    font-size: 20px;
-}
 </style>
 </head>
+
 
 <body>
 
 <header>
-    <h1>🎵 Présences Chorale</h1>
+    <h1>🎵 Test Présences Chorale</h1>
 </header>
 
 <div id="scanner"></div>
@@ -75,14 +81,35 @@ h1 {
     Scannez un QR code
 </div>
 
+<div id="debug">
+Initialisation...
+</div>
+
+
 <script>
 
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbztFWFsDYbWyVng9hSDd6vvtMnU_i9kLvXgweqGoTR-LXg3prTVcWehyo_CcaUpNnEmlg/exec";
 
+
 let scanner;
 let dernierScan = null;
 let scanEnCours = false;
+
+
+function debug(message) {
+
+    const zone = document.getElementById("debug");
+
+    zone.innerHTML += "\n" + message;
+
+    console.log(message);
+}
+
+
+debug("✅ Page chargée");
+debug("📡 Serveur : Apps Script");
+debug("⏳ Scanner en cours d'initialisation...");
 
 
 /* =========================
@@ -91,15 +118,12 @@ let scanEnCours = false;
 
 window.presenceCallback = function(data) {
 
-    console.log("Réponse Google :", data);
+    debug("✅ CALLBACK GOOGLE REÇU");
+
+    debug(JSON.stringify(data));
 
     afficherResultat(data);
 
-    const script = document.getElementById("google-script");
-
-    if (script) {
-        script.remove();
-    }
 };
 
 
@@ -119,99 +143,104 @@ function afficherResultat(data) {
             ? "⚠️ Présence déjà enregistrée"
             : "✅ Présence enregistrée";
 
-        result.innerHTML = `
-            <div class="name">
-                ${data.prenom} ${data.nom}
-            </div>
-
-            <div class="voice">
-                ${data.voix || ""}
-            </div>
-
-            <br>
-
-            <div>${message}</div>
-        `;
+        result.innerHTML =
+            "<strong>" +
+            data.prenom +
+            " " +
+            data.nom +
+            "</strong><br><br>" +
+            (data.voix || "") +
+            "<br><br>" +
+            message;
 
     } else {
 
         result.className = "error";
 
-        result.innerHTML = "❌ " + data.message;
+        result.innerHTML =
+            "❌ " + data.message;
+
     }
 
-    setTimeout(() => {
-
-        result.className = "";
-        result.innerHTML = "Scannez un QR code";
-
-        scanEnCours = false;
-
-    }, 2000);
+    scanEnCours = false;
 }
 
 
 /* =========================
-   TRAITEMENT DU QR CODE
+   TRAITEMENT QR
 ========================= */
 
 function traiterQR(qrCodeMessage) {
 
-    if (scanEnCours) return;
+    if (scanEnCours) {
 
-    if (dernierScan === qrCodeMessage) return;
+        debug("⚠️ Scan déjà en cours");
 
-    scanEnCours = true;
-
-    dernierScan = qrCodeMessage;
-
-    console.log("QR détecté :", qrCodeMessage);
-
-
-    /* Suppression d'un ancien script éventuel */
-
-    const ancienScript = document.getElementById("google-script");
-
-    if (ancienScript) {
-        ancienScript.remove();
+        return;
     }
 
+    if (dernierScan === qrCodeMessage) {
 
-    /* Création de l'appel Google */
+        return;
+    }
 
-    const script = document.createElement("script");
+    scanEnCours = true;
+    dernierScan = qrCodeMessage;
 
-    script.id = "google-script";
 
-    script.src =
+    debug("📷 QR DÉTECTÉ");
+    debug("ID = " + qrCodeMessage);
+
+
+    const url =
         APPS_SCRIPT_URL +
         "?id=" +
         encodeURIComponent(qrCodeMessage) +
-        "&callback=presenceCallback&_=" +
+        "&callback=presenceCallback" +
+        "&_=" +
         Date.now();
+
+
+    debug("🌐 Appel du serveur...");
+    debug(url);
+
+
+    const script = document.createElement("script");
+
+    script.src = url;
+
+
+    script.onload = function() {
+
+        debug("📥 Réponse serveur chargée");
+
+    };
 
 
     script.onerror = function() {
 
-        console.error("Erreur lors de l'appel Google");
+        debug("❌ ERREUR SCRIPT");
+        debug("Le navigateur n'a pas pu charger la réponse.");
 
         document.getElementById("result").className = "error";
 
         document.getElementById("result").innerHTML =
-            "❌ Impossible de contacter le serveur";
+            "❌ Erreur de communication";
 
         scanEnCours = false;
+
     };
 
 
     document.body.appendChild(script);
 
 
-    setTimeout(() => {
+    setTimeout(function() {
 
         dernierScan = null;
 
     }, 3000);
+
 }
 
 
@@ -219,26 +248,39 @@ function traiterQR(qrCodeMessage) {
    SCANNER
 ========================= */
 
-scanner = new Html5QrcodeScanner(
-    "scanner",
-    {
-        fps: 10,
-        qrbox: {
-            width: 250,
-            height: 250
-        }
-    },
-    false
-);
+try {
 
-scanner.render(
-    traiterQR,
-    function(errorMessage) {
-        // Les erreurs normales de détection sont ignorées
-    }
-);
+    scanner = new Html5QrcodeScanner(
+        "scanner",
+        {
+            fps: 10,
+            qrbox: {
+                width: 250,
+                height: 250
+            }
+        },
+        false
+    );
+
+    scanner.render(
+        traiterQR,
+        function(errorMessage) {
+            // erreurs normales ignorées
+        }
+    );
+
+    debug("✅ Scanner initialisé");
+
+}
+catch (error) {
+
+    debug("❌ ERREUR SCANNER");
+    debug(error.toString());
+
+}
 
 </script>
 
 </body>
+
 </html>
