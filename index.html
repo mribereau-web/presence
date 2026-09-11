@@ -2,156 +2,482 @@
 <html lang="fr">
 
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Présences Chorale</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<title>CHOEUR DE PIERRE - Suis ta voix</title>
+
+<script src="https://unpkg.com/html5-qrcode"
+        type="text/javascript"></script>
 
 <style>
 
+* {
+    box-sizing: border-box;
+}
+
 body {
+
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    background: #f2f2f2;
+
+    color: #222;
+
     text-align: center;
 }
 
+
+/* =========================
+   EN-TÊTE
+========================= */
+
 header {
+
     background: #222;
+
     color: white;
-    padding: 20px;
+
+    padding: 28px 20px 24px;
+
 }
 
-h1 {
-    margin: 0;
-    font-size: 24px;
+.title {
+
+    font-size: 26px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.5px;
+
 }
+
+.subtitle {
+
+    margin-top: 6px;
+
+    font-size: 18px;
+
+    opacity: 0.8;
+
+    font-style: italic;
+
+}
+
+
+/* =========================
+   BOUTON CAMÉRA
+========================= */
 
 #startButton {
+
     display: block;
-    margin: 25px auto;
-    padding: 16px 28px;
+
+    margin: 28px auto 20px;
+
+    padding: 18px 30px;
+
     font-size: 20px;
-    font-weight: bold;
+
+    font-weight: 700;
+
     border: none;
-    border-radius: 12px;
+
+    border-radius: 14px;
+
     background: #222;
+
     color: white;
+
+    box-shadow:
+        0 4px 10px rgba(0,0,0,0.15);
+
 }
+
+#startButton:active {
+
+    transform: scale(0.97);
+
+}
+
+
+/* =========================
+   SCANNER
+========================= */
 
 #scanner {
+
     width: 100%;
+
     max-width: 500px;
-    margin: 20px auto;
+
+    margin: 0 auto;
+
     background: white;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+
 }
+
+
+/* =========================
+   MESSAGE
+========================= */
 
 #result {
+
     margin: 20px auto;
+
     max-width: 500px;
-    padding: 20px;
-    border-radius: 12px;
+
+    padding: 24px 20px;
+
+    border-radius: 16px;
+
     background: white;
+
     font-size: 20px;
+
+    min-height: 120px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-direction: column;
+
 }
+
+
+/* =========================
+   SUCCÈS
+========================= */
 
 .success {
+
     background: #d9f7df !important;
+
+    color: #145c25;
+
 }
 
+
+/* =========================
+   DOUBLON
+========================= */
+
+.duplicate {
+
+    background: #fff1c9 !important;
+
+    color: #765400;
+
+}
+
+
+/* =========================
+   ERREUR
+========================= */
+
 .error {
+
     background: #ffdede !important;
+
+    color: #8a1515;
+
+}
+
+
+/* =========================
+   NOM
+========================= */
+
+.name {
+
+    font-size: 32px;
+
+    font-weight: 800;
+
+    margin-bottom: 8px;
+
+}
+
+
+/* =========================
+   VOIX
+========================= */
+
+.voice {
+
+    font-size: 22px;
+
+    font-weight: 500;
+
+}
+
+
+/* =========================
+   PETIT TEXTE
+========================= */
+
+.instruction {
+
+    margin: 12px 20px 25px;
+
+    color: #666;
+
+    font-size: 16px;
+
 }
 
 </style>
 
 </head>
 
+
 <body>
 
+
 <header>
-    <h1>🎵 Présences Chorale</h1>
+
+    <div class="title">
+        CHOEUR DE PIERRE
+    </div>
+
+    <div class="subtitle">
+        Suis ta voix
+    </div>
+
 </header>
 
+
 <button id="startButton">
+
     📷 Démarrer la caméra
+
 </button>
+
 
 <div id="scanner"></div>
 
+
 <div id="result">
-    Appuyez sur « Démarrer la caméra »
+
+    <div>
+        Appuyez sur « Démarrer la caméra »
+    </div>
+
+</div>
+
+
+<div class="instruction">
+
+    Présentez votre QR code devant la caméra
+
 </div>
 
 
 <script>
+
+
+/* =========================
+   GOOGLE APPS SCRIPT
+========================= */
 
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbztFWFsDYbWyVng9hSDd6vvtMnU_i9kLvXgweqGoTR-LXg3prTVcWehyo_CcaUpNnEmlg/exec";
 
 
 let scanner = null;
+
 let dernierScan = null;
+
 let scanEnCours = false;
 
 
 /* =========================
-   DÉMARRAGE CAMÉRA
+   SON
 ========================= */
 
-document.getElementById("startButton").addEventListener("click", function() {
+function jouerSon(type) {
+
+    try {
+
+        const audioContext =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+        const oscillator =
+            audioContext.createOscillator();
+
+        const gain =
+            audioContext.createGain();
+
+
+        oscillator.connect(gain);
+
+        gain.connect(audioContext.destination);
+
+
+        oscillator.frequency.value =
+            type === "success"
+                ? 880
+                : 440;
+
+
+        gain.gain.setValueAtTime(
+            0.15,
+            audioContext.currentTime
+        );
+
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            audioContext.currentTime + 0.25
+        );
+
+
+        oscillator.start();
+
+        oscillator.stop(
+            audioContext.currentTime + 0.25
+        );
+
+    }
+
+    catch (e) {
+
+        console.log("Son indisponible");
+
+    }
+
+}
+
+
+/* =========================
+   DÉMARRER CAMÉRA
+========================= */
+
+document
+.getElementById("startButton")
+.addEventListener("click", function() {
+
 
     const button = this;
 
     button.disabled = true;
-    button.innerText = "📷 Démarrage...";
 
-    document.getElementById("result").innerHTML =
+    button.innerText =
+        "📷 Démarrage...";
+
+
+    document
+    .getElementById("result")
+    .className = "";
+
+
+    document
+    .getElementById("result")
+    .innerHTML =
         "Autorisation de la caméra...";
 
 
-    scanner = new Html5Qrcode("scanner");
+    scanner =
+        new Html5Qrcode("scanner");
 
 
     scanner.start(
-        { facingMode: "environment" },
 
         {
+            facingMode: "environment"
+        },
+
+        {
+
             fps: 10,
+
             qrbox: {
+
                 width: 250,
+
                 height: 250
+
             }
+
         },
 
         traiterQR,
 
         function(errorMessage) {
-            // Les erreurs normales de détection sont ignorées
+
+            // erreurs normales ignorées
+
         }
 
-    ).then(function() {
+    )
 
-        button.style.display = "none";
+    .then(function() {
 
-        document.getElementById("result").innerHTML =
-            "📷 Caméra active — présentez un QR code";
 
-    }).catch(function(error) {
+        button.style.display =
+            "none";
+
+
+        document
+        .getElementById("result")
+        .className = "";
+
+
+        document
+        .getElementById("result")
+        .innerHTML =
+
+            "📷 Caméra active";
+
+
+    })
+
+    .catch(function(error) {
+
 
         console.error(error);
 
+
         button.disabled = false;
 
-        button.innerText = "📷 Réessayer";
+        button.innerText =
+            "📷 Réessayer";
 
-        document.getElementById("result").className = "error";
 
-        document.getElementById("result").innerHTML =
-            "❌ Impossible d'ouvrir la caméra.<br><br>" +
-            "Vérifiez que Safari a l'autorisation d'utiliser l'appareil photo.";
+        document
+        .getElementById("result")
+        .className =
+            "error";
+
+
+        document
+        .getElementById("result")
+        .innerHTML =
+
+            "❌ Impossible d'ouvrir la caméra<br><br>" +
+
+            "Vérifiez l'autorisation de l'appareil photo.";
 
     });
 
@@ -159,71 +485,112 @@ document.getElementById("startButton").addEventListener("click", function() {
 
 
 /* =========================
-   QR CODE
+   TRAITEMENT QR
 ========================= */
 
 function traiterQR(qrCodeMessage) {
 
-    if (scanEnCours) return;
 
-    if (dernierScan === qrCodeMessage) return;
+    if (scanEnCours)
+        return;
+
+
+    if (dernierScan === qrCodeMessage)
+        return;
+
 
     scanEnCours = true;
+
     dernierScan = qrCodeMessage;
 
 
-    document.getElementById("result").className = "";
+    const result =
+        document.getElementById("result");
 
-    document.getElementById("result").innerHTML =
-        "📡 Enregistrement de la présence...";
+
+    result.className = "";
+
+
+    result.innerHTML =
+        "📡 Enregistrement...";
 
 
     /* =========================
-       ENVOI À GOOGLE
+       FORMULAIRE INVISIBLE
     ========================= */
 
-    const form = document.createElement("form");
+    const form =
+        document.createElement("form");
+
 
     form.method = "GET";
 
-    form.action = APPS_SCRIPT_URL;
+    form.action =
+        APPS_SCRIPT_URL;
 
-    form.target = "googleResponse";
+    form.target =
+        "googleResponse";
 
-    form.style.display = "none";
+    form.style.display =
+        "none";
 
 
-    const input = document.createElement("input");
+    const input =
+        document.createElement("input");
 
-    input.type = "hidden";
 
-    input.name = "id";
+    input.type =
+        "hidden";
 
-    input.value = qrCodeMessage;
+
+    input.name =
+        "id";
+
+
+    input.value =
+        qrCodeMessage;
 
 
     form.appendChild(input);
 
+
     document.body.appendChild(form);
 
 
-    /* iframe invisible */
+    /* =========================
+       IFRAME
+    ========================= */
 
     let iframe =
-        document.getElementById("googleResponse");
+        document.getElementById(
+            "googleResponse"
+        );
 
 
     if (!iframe) {
 
-        iframe = document.createElement("iframe");
 
-        iframe.id = "googleResponse";
+        iframe =
+            document.createElement(
+                "iframe"
+            );
 
-        iframe.name = "googleResponse";
 
-        iframe.style.display = "none";
+        iframe.id =
+            "googleResponse";
 
-        document.body.appendChild(iframe);
+
+        iframe.name =
+            "googleResponse";
+
+
+        iframe.style.display =
+            "none";
+
+
+        document.body.appendChild(
+            iframe
+        );
 
     }
 
@@ -237,27 +604,54 @@ function traiterQR(qrCodeMessage) {
 
     setTimeout(function() {
 
-        document.getElementById("result").className =
+
+        jouerSon("success");
+
+
+        result.className =
             "success";
 
-        document.getElementById("result").innerHTML =
-            "✅ Présence envoyée<br><br>" +
-            "ID : " +
-            qrCodeMessage;
+
+        result.innerHTML =
+
+            '<div class="name">' +
+
+            '✓ Présence enregistrée' +
+
+            '</div>' +
+
+            '<div class="voice">' +
+
+            'QR : ' +
+
+            qrCodeMessage +
+
+            '</div>';
+
 
         scanEnCours = false;
+
 
     }, 1500);
 
 
+    /* =========================
+       RETOUR AU SCAN
+    ========================= */
+
     setTimeout(function() {
+
 
         dernierScan = null;
 
-        document.getElementById("result").className = "";
 
-        document.getElementById("result").innerHTML =
+        result.className = "";
+
+
+        result.innerHTML =
+
             "📷 Présentez un QR code";
+
 
     }, 3500);
 
@@ -265,5 +659,7 @@ function traiterQR(qrCodeMessage) {
 
 </script>
 
+
 </body>
+
 </html>
