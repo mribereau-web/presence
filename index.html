@@ -490,170 +490,124 @@ document
 
 function traiterQR(qrCodeMessage) {
 
-
     if (scanEnCours)
         return;
-
 
     if (dernierScan === qrCodeMessage)
         return;
 
-
     scanEnCours = true;
-
     dernierScan = qrCodeMessage;
-
 
     const result =
         document.getElementById("result");
 
-
     result.className = "";
-
-
-    result.innerHTML =
-        "📡 Enregistrement...";
+    result.innerHTML = "📡 Enregistrement...";
 
 
     /* =========================
-       FORMULAIRE INVISIBLE
-    ========================= */
+       ENVOI VERS GOOGLE APPS SCRIPT
+       ========================= */
 
-    const form =
-        document.createElement("form");
+    const callbackName =
+        "presenceCallback_" + Date.now();
 
+    window[callbackName] = function(data) {
 
-    form.method = "GET";
+        /* Suppression du callback */
+        delete window[callbackName];
 
-    form.action =
-        APPS_SCRIPT_URL;
+        /* Résultat Google */
+        if (data && data.success) {
 
-    form.target =
-        "googleResponse";
+            jouerSon("success");
 
-    form.style.display =
-        "none";
+            result.className = "success";
 
+            result.innerHTML =
 
-    const input =
-        document.createElement("input");
+                '<div class="name">' +
 
+                '✓ Présence enregistrée' +
 
-    input.type =
-        "hidden";
+                '</div>' +
 
+                '<div class="voice">' +
 
-    input.name =
-        "id";
+                'QR : ' +
 
+                qrCodeMessage +
 
-    input.value =
-        qrCodeMessage;
+                '</div>';
 
+        } else {
 
-    form.appendChild(input);
+            result.className = "error";
 
+            result.innerHTML =
 
-    document.body.appendChild(form);
+                '<div class="name">' +
 
+                '⚠️ ' +
 
-    /* =========================
-       IFRAME
-    ========================= */
+                (data && data.message
+                    ? data.message
+                    : "Erreur d’enregistrement") +
 
-    let iframe =
-        document.getElementById(
-            "googleResponse"
-        );
+                '</div>';
 
-
-    if (!iframe) {
-
-
-        iframe =
-            document.createElement(
-                "iframe"
-            );
-
-
-        iframe.id =
-            "googleResponse";
-
-
-        iframe.name =
-            "googleResponse";
-
-
-        iframe.style.display =
-            "none";
-
-
-        document.body.appendChild(
-            iframe
-        );
-
-    }
-
-
-    form.submit();
-
-
-    /* =========================
-       CONFIRMATION
-    ========================= */
-
-    setTimeout(function() {
-
-
-        jouerSon("success");
-
-
-        result.className =
-            "success";
-
-
-        result.innerHTML =
-
-            '<div class="name">' +
-
-            '✓ Présence enregistrée' +
-
-            '</div>' +
-
-            '<div class="voice">' +
-
-            'QR : ' +
-
-            qrCodeMessage +
-
-            '</div>';
-
+        }
 
         scanEnCours = false;
+    };
 
 
-    }, 1500);
+    /* =========================
+       REQUÊTE JSONP
+       ========================= */
+
+    const script =
+        document.createElement("script");
+
+    script.src =
+        APPS_SCRIPT_URL +
+        "?id=" +
+        encodeURIComponent(qrCodeMessage) +
+        "&callback=" +
+        encodeURIComponent(callbackName);
+
+    script.onerror = function() {
+
+        delete window[callbackName];
+
+        result.className = "error";
+
+        result.innerHTML =
+            '<div class="name">' +
+            '⚠️ Impossible de contacter Google' +
+            '</div>';
+
+        scanEnCours = false;
+    };
+
+    document.body.appendChild(script);
 
 
     /* =========================
        RETOUR AU SCAN
-    ========================= */
+       ========================= */
 
     setTimeout(function() {
 
-
         dernierScan = null;
-
 
         result.className = "";
 
-
         result.innerHTML =
-
             "📷 Présentez un QR code";
 
-
-    }, 3500);
+    }, 4000);
 
 }
 
