@@ -496,118 +496,164 @@ function traiterQR(qrCodeMessage) {
     if (dernierScan === qrCodeMessage)
         return;
 
+
     scanEnCours = true;
+
     dernierScan = qrCodeMessage;
+
 
     const result =
         document.getElementById("result");
 
+
     result.className = "";
-    result.innerHTML = "📡 Enregistrement...";
+
+    result.innerHTML =
+        "📡 Enregistrement...";
 
 
     /* =========================
-       ENVOI VERS GOOGLE APPS SCRIPT
-       ========================= */
+       FORMULAIRE INVISIBLE
+    ========================= */
 
-    const callbackName =
-        "presenceCallback_" + Date.now();
+    const form =
+        document.createElement("form");
 
-    window[callbackName] = function(data) {
 
-        /* Suppression du callback */
-        delete window[callbackName];
+    form.method = "GET";
 
-        /* Résultat Google */
-        if (data && data.success) {
+    form.action =
+        APPS_SCRIPT_URL;
 
-            jouerSon("success");
+    form.target =
+        "googleResponse";
 
-            result.className = "success";
+    form.style.display =
+        "none";
 
-            result.innerHTML =
 
-                '<div class="name">' +
+    const input =
+        document.createElement("input");
 
-                '✓ Présence enregistrée' +
 
-                '</div>' +
+    input.type =
+        "hidden";
 
-                '<div class="voice">' +
 
-                'QR : ' +
+    input.name =
+        "id";
 
-                qrCodeMessage +
 
-                '</div>';
+    input.value =
+        qrCodeMessage;
 
-        } else {
 
-            result.className = "error";
+    form.appendChild(input);
 
-            result.innerHTML =
 
-                '<div class="name">' +
-
-                '⚠️ ' +
-
-                (data && data.message
-                    ? data.message
-                    : "Erreur d’enregistrement") +
-
-                '</div>';
-
-        }
-
-        scanEnCours = false;
-    };
+    document.body.appendChild(form);
 
 
     /* =========================
-       REQUÊTE JSONP
-       ========================= */
+       IFRAME
+    ========================= */
 
-    const script =
-        document.createElement("script");
+    let iframe =
+        document.getElementById(
+            "googleResponse"
+        );
 
-    script.src =
-        APPS_SCRIPT_URL +
-        "?id=" +
-        encodeURIComponent(qrCodeMessage) +
-        "&callback=" +
-        encodeURIComponent(callbackName);
 
-    script.onerror = function() {
+    if (!iframe) {
 
-        delete window[callbackName];
+        iframe =
+            document.createElement(
+                "iframe"
+            );
 
-        result.className = "error";
+
+        iframe.id =
+            "googleResponse";
+
+
+        iframe.name =
+            "googleResponse";
+
+
+        iframe.style.display =
+            "none";
+
+
+        document.body.appendChild(
+            iframe
+        );
+
+    }
+
+
+    /* =========================
+       ENVOI
+    ========================= */
+
+    form.submit();
+
+
+    /* =========================
+       CONFIRMATION
+    ========================= */
+
+    setTimeout(function() {
+
+
+        jouerSon("success");
+
+
+        result.className =
+            "success";
+
 
         result.innerHTML =
+
             '<div class="name">' +
-            '⚠️ Impossible de contacter Google' +
+
+            '✓ Présence enregistrée' +
+
+            '</div>' +
+
+            '<div class="voice">' +
+
+            'QR : ' +
+
+            qrCodeMessage +
+
             '</div>';
 
-        scanEnCours = false;
-    };
 
-    document.body.appendChild(script);
+        scanEnCours = false;
+
+
+    }, 1500);
 
 
     /* =========================
        RETOUR AU SCAN
-       ========================= */
+    ========================= */
 
     setTimeout(function() {
 
+
         dernierScan = null;
+
 
         result.className = "";
 
+
         result.innerHTML =
+
             "📷 Présentez un QR code";
 
-    }, 4000);
+
+    }, 3500);
 
 }
 
