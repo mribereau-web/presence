@@ -1,665 +1,245 @@
-<!DOCTYPE html>
-<html lang="fr">
+const SPREADSHEET_ID =
+  "1Pnpm20XBN8SHWoaGT7deblrMlcUBg6QMUi4j3EifTEQ";
 
-<head>
+const SHEET_CHORISTES = "Choristes";
+const SHEET_PRESENCES = "Présences";
 
-<meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>CHOEUR DE PIERRE - Suis ta voix</title>
-
-<script src="https://unpkg.com/html5-qrcode"
-        type="text/javascript"></script>
-
-<style>
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-
-    margin: 0;
-
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Arial,
-        sans-serif;
-
-    background: #f2f2f2;
-
-    color: #222;
-
-    text-align: center;
-}
+const NOM_CHORALE = "Suis ta voix";
+const NOM_SCANNER = "Scanner 1";
 
 
-/* =========================
-   EN-TÊTE
-========================= */
+function doGet(e) {
 
-header {
+  const id = e.parameter.id;
 
-    background: #222;
+  if (!id) {
 
-    color: white;
+    return ContentService
+      .createTextOutput("ID manquant");
 
-    padding: 28px 20px 24px;
+  }
 
-}
+  enregistrerPresence(id);
 
-.title {
-
-    font-size: 26px;
-
-    font-weight: 800;
-
-    letter-spacing: 0.5px;
-
-}
-
-.subtitle {
-
-    margin-top: 6px;
-
-    font-size: 18px;
-
-    opacity: 0.8;
-
-    font-style: italic;
+  return ContentService
+    .createTextOutput("OK");
 
 }
 
 
-/* =========================
-   BOUTON CAMÉRA
-========================= */
+function enregistrerPresence(id) {
 
-#startButton {
+  const ss =
+    SpreadsheetApp.openById(SPREADSHEET_ID);
 
-    display: block;
 
-    margin: 28px auto 20px;
+  const choristesSheet =
+    ss.getSheetByName(SHEET_CHORISTES);
 
-    padding: 18px 30px;
+  const presencesSheet =
+    ss.getSheetByName(SHEET_PRESENCES);
 
-    font-size: 20px;
 
-    font-weight: 700;
+  if (!choristesSheet || !presencesSheet) {
 
-    border: none;
+    throw new Error(
+      "Onglet Choristes ou Présences introuvable"
+    );
 
-    border-radius: 14px;
+  }
 
-    background: #222;
 
-    color: white;
+  /* =========================
+     RECHERCHE DU CHORISTE
+  ========================= */
 
-    box-shadow:
-        0 4px 10px rgba(0,0,0,0.15);
+  const data =
+    choristesSheet
+      .getDataRange()
+      .getValues();
 
-}
 
-#startButton:active {
+  let choriste = null;
 
-    transform: scale(0.97);
 
-}
+  for (let i = 1; i < data.length; i++) {
 
+    if (
+      String(data[i][0]).trim() ===
+      String(id).trim()
+    ) {
 
-/* =========================
-   SCANNER
-========================= */
+      if (
+        String(data[i][4])
+          .trim()
+          .toUpperCase() !== "OUI"
+      ) {
 
-#scanner {
-
-    width: 100%;
-
-    max-width: 500px;
-
-    margin: 0 auto;
-
-    background: white;
-
-    border-radius: 16px;
-
-    overflow: hidden;
-
-}
-
-
-/* =========================
-   MESSAGE
-========================= */
-
-#result {
-
-    margin: 20px auto;
-
-    max-width: 500px;
-
-    padding: 24px 20px;
-
-    border-radius: 16px;
-
-    background: white;
-
-    font-size: 20px;
-
-    min-height: 120px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    flex-direction: column;
-
-}
-
-
-/* =========================
-   SUCCÈS
-========================= */
-
-.success {
-
-    background: #d9f7df !important;
-
-    color: #145c25;
-
-}
-
-
-/* =========================
-   DOUBLON
-========================= */
-
-.duplicate {
-
-    background: #fff1c9 !important;
-
-    color: #765400;
-
-}
-
-
-/* =========================
-   ERREUR
-========================= */
-
-.error {
-
-    background: #ffdede !important;
-
-    color: #8a1515;
-
-}
-
-
-/* =========================
-   NOM
-========================= */
-
-.name {
-
-    font-size: 32px;
-
-    font-weight: 800;
-
-    margin-bottom: 8px;
-
-}
-
-
-/* =========================
-   VOIX
-========================= */
-
-.voice {
-
-    font-size: 22px;
-
-    font-weight: 500;
-
-}
-
-
-/* =========================
-   PETIT TEXTE
-========================= */
-
-.instruction {
-
-    margin: 12px 20px 25px;
-
-    color: #666;
-
-    font-size: 16px;
-
-}
-
-</style>
-
-</head>
-
-
-<body>
-
-
-<header>
-
-    <div class="title">
-        CHOEUR DE PIERRE
-    </div>
-
-    <div class="subtitle">
-        Suis ta voix
-    </div>
-
-</header>
-
-
-<button id="startButton">
-
-    📷 Démarrer la caméra
-
-</button>
-
-
-<div id="scanner"></div>
-
-
-<div id="result">
-
-    <div>
-        Appuyez sur « Démarrer la caméra »
-    </div>
-
-</div>
-
-
-<div class="instruction">
-
-    Présentez votre QR code devant la caméra
-
-</div>
-
-
-<script>
-
-
-/* =========================
-   GOOGLE APPS SCRIPT
-========================= */
-
-const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbztFWFsDYbWyVng9hSDd6vvtMnU_i9kLvXgweqGoTR-LXg3prTVcWehyo_CcaUpNnEmlg/exec";
-
-
-let scanner = null;
-
-let dernierScan = null;
-
-let scanEnCours = false;
-
-
-/* =========================
-   SON
-========================= */
-
-function jouerSon(type) {
-
-    try {
-
-        const audioContext =
-            new (
-                window.AudioContext ||
-                window.webkitAudioContext
-            )();
-
-        const oscillator =
-            audioContext.createOscillator();
-
-        const gain =
-            audioContext.createGain();
-
-
-        oscillator.connect(gain);
-
-        gain.connect(audioContext.destination);
-
-
-        oscillator.frequency.value =
-            type === "success"
-                ? 880
-                : 440;
-
-
-        gain.gain.setValueAtTime(
-            0.15,
-            audioContext.currentTime
+        ajouterLigne(
+          presencesSheet,
+          id,
+          "",
+          "",
+          "",
+          "INACTIF"
         );
 
-
-        gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            audioContext.currentTime + 0.25
-        );
-
-
-        oscillator.start();
-
-        oscillator.stop(
-            audioContext.currentTime + 0.25
-        );
-
-    }
-
-    catch (e) {
-
-        console.log("Son indisponible");
-
-    }
-
-}
-
-
-/* =========================
-   DÉMARRER CAMÉRA
-========================= */
-
-document
-.getElementById("startButton")
-.addEventListener("click", function() {
-
-
-    const button = this;
-
-    button.disabled = true;
-
-    button.innerText =
-        "📷 Démarrage...";
-
-
-    document
-    .getElementById("result")
-    .className = "";
-
-
-    document
-    .getElementById("result")
-    .innerHTML =
-        "Autorisation de la caméra...";
-
-
-    scanner =
-        new Html5Qrcode("scanner");
-
-
-    scanner.start(
-
-        {
-            facingMode: "environment"
-        },
-
-        {
-
-            fps: 10,
-
-            qrbox: {
-
-                width: 250,
-
-                height: 250
-
-            }
-
-        },
-
-        traiterQR,
-
-        function(errorMessage) {
-
-            // erreurs normales ignorées
-
-        }
-
-    )
-
-    .then(function() {
-
-
-        button.style.display =
-            "none";
-
-
-        document
-        .getElementById("result")
-        .className = "";
-
-
-        document
-        .getElementById("result")
-        .innerHTML =
-
-            "📷 Caméra active";
-
-
-    })
-
-    .catch(function(error) {
-
-
-        console.error(error);
-
-
-        button.disabled = false;
-
-        button.innerText =
-            "📷 Réessayer";
-
-
-        document
-        .getElementById("result")
-        .className =
-            "error";
-
-
-        document
-        .getElementById("result")
-        .innerHTML =
-
-            "❌ Impossible d'ouvrir la caméra<br><br>" +
-
-            "Vérifiez l'autorisation de l'appareil photo.";
-
-    });
-
-});
-
-
-/* =========================
-   TRAITEMENT QR
-========================= */
-
-function traiterQR(qrCodeMessage) {
-
-
-    if (scanEnCours)
         return;
 
-
-    if (dernierScan === qrCodeMessage)
-        return;
+      }
 
 
-    scanEnCours = true;
+      choriste = {
 
-    dernierScan = qrCodeMessage;
+        id: data[i][0],
 
+        prenom: data[i][1],
 
-    const result =
-        document.getElementById("result");
+        nom: data[i][2],
 
+        voix: data[i][3]
 
-    result.className = "";
-
-
-    result.innerHTML =
-        "📡 Enregistrement...";
+      };
 
 
-    /* =========================
-       FORMULAIRE INVISIBLE
-    ========================= */
-
-    const form =
-        document.createElement("form");
-
-
-    form.method = "GET";
-
-    form.action =
-        APPS_SCRIPT_URL;
-
-    form.target =
-        "googleResponse";
-
-    form.style.display =
-        "none";
-
-
-    const input =
-        document.createElement("input");
-
-
-    input.type =
-        "hidden";
-
-
-    input.name =
-        "id";
-
-
-    input.value =
-        qrCodeMessage;
-
-
-    form.appendChild(input);
-
-
-    document.body.appendChild(form);
-
-
-    /* =========================
-       IFRAME
-    ========================= */
-
-    let iframe =
-        document.getElementById(
-            "googleResponse"
-        );
-
-
-    if (!iframe) {
-
-
-        iframe =
-            document.createElement(
-                "iframe"
-            );
-
-
-        iframe.id =
-            "googleResponse";
-
-
-        iframe.name =
-            "googleResponse";
-
-
-        iframe.style.display =
-            "none";
-
-
-        document.body.appendChild(
-            iframe
-        );
+      break;
 
     }
 
-
-    form.submit();
-
-
-    /* =========================
-       CONFIRMATION
-    ========================= */
-
-    setTimeout(function() {
+  }
 
 
-        jouerSon("success");
+  /* =========================
+     QR INCONNU
+  ========================= */
+
+  if (!choriste) {
+
+    ajouterLigne(
+      presencesSheet,
+      id,
+      "",
+      "",
+      "",
+      "QR INCONNU"
+    );
+
+    return;
+
+  }
 
 
-        result.className =
-            "success";
+  /* =========================
+     VÉRIFICATION DOUBLON
+  ========================= */
+
+  const maintenant = new Date();
+
+  const presenceData =
+    presencesSheet
+      .getDataRange()
+      .getValues();
 
 
-        result.innerHTML =
+  for (
+    let i = presenceData.length - 1;
+    i >= 1;
+    i--
+  ) {
 
-            '<div class="name">' +
+    const dateScan =
+      presenceData[i][0];
 
-            '✓ Présence enregistrée' +
-
-            '</div>' +
-
-            '<div class="voice">' +
-
-            'QR : ' +
-
-            qrCodeMessage +
-
-            '</div>';
+    const idScan =
+      String(presenceData[i][2]).trim();
 
 
-        scanEnCours = false;
+    if (
+      idScan === String(id).trim() &&
+      dateScan instanceof Date
+    ) {
+
+      const difference =
+        (
+          maintenant.getTime() -
+          dateScan.getTime()
+        ) / 1000;
 
 
-    }, 1500);
+      if (difference < 120) {
+
+        ajouterLigne(
+          presencesSheet,
+          choriste.id,
+          choriste.prenom,
+          choriste.nom,
+          choriste.voix,
+          "DÉJÀ ENREGISTRÉ"
+        );
+
+        return;
+
+      }
+
+      break;
+
+    }
+
+  }
 
 
-    /* =========================
-       RETOUR AU SCAN
-    ========================= */
+  /* =========================
+     ENREGISTREMENT NORMAL
+  ========================= */
 
-    setTimeout(function() {
-
-
-        dernierScan = null;
-
-
-        result.className = "";
-
-
-        result.innerHTML =
-
-            "📷 Présentez un QR code";
-
-
-    }, 3500);
+  ajouterLigne(
+    presencesSheet,
+    choriste.id,
+    choriste.prenom,
+    choriste.nom,
+    choriste.voix,
+    "OK"
+  );
 
 }
 
-</script>
+
+/* =========================
+   AJOUT D'UNE LIGNE
+========================= */
+
+function ajouterLigne(
+  sheet,
+  id,
+  prenom,
+  nom,
+  voix,
+  statut
+) {
+
+  const maintenant = new Date();
 
 
-</body>
+  sheet.appendRow([
 
-</html>
+    maintenant,       // Date
+
+    maintenant,       // Heure
+
+    id,               // ID
+
+    prenom,           // Prénom
+
+    nom,              // Nom
+
+    voix,             // Voix
+
+    statut,           // Statut
+
+    NOM_CHORALE,      // Chorale
+
+    NOM_SCANNER       // Appareil
+
+  ]);
+
+}
