@@ -1,149 +1,31 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Test présence</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 40px 20px;
-            background: #f2f2f2;
-        }
-
-        button {
-            padding: 20px 30px;
-            font-size: 20px;
-            border: none;
-            border-radius: 12px;
-            background: #222;
-            color: white;
-        }
-
-        #result {
-            margin-top: 30px;
-            padding: 25px;
-            background: white;
-            border-radius: 12px;
-            font-size: 20px;
-        }
-    </style>
+    <title>Test CHOR002</title>
 </head>
 
 <body>
 
-    <h1>CHOEUR DE PIERRE</h1>
+    <h1>Test connexion</h1>
 
-    <p>Test de connexion</p>
-
-    <button id="testButton">
+    <a
+        href="https://script.google.com/macros/s/AKfycbzhS0cG7ASv2IMpYmEeTJk0r-jgMB3l7o93LgB5vut5K7KNGsNE3xI8YM6C-1dvCs5olQ/exec?id=CHOR002"
+        style="
+            display:inline-block;
+            padding:20px 30px;
+            background:#222;
+            color:white;
+            text-decoration:none;
+            border-radius:10px;
+            font-size:20px;
+        "
+    >
         TEST CHOR002
-    </button>
-
-    <div id="result">
-        Appuyez sur le bouton
-    </div>
-
-
-    <script>
-
-        const APPS_SCRIPT_URL =
-        "https://script.google.com/macros/s/AKfycbzhS0cG7ASv2IMpYmEeTJk0r-jgMB3l7o93LgB5vut5K7KNGsNE3xI8YM6C-1dvCs5olQ/exec";
-
-
-        document
-        .getElementById("testButton")
-        .addEventListener("click", function() {
-
-            const result =
-                document.getElementById("result");
-
-            result.innerHTML =
-                "📡 Envoi de CHOR002...";
-
-
-            /*
-             * FORMULAIRE INVISIBLE
-             */
-
-            const form =
-                document.createElement("form");
-
-            form.method = "GET";
-
-            form.action =
-                APPS_SCRIPT_URL;
-
-            form.target =
-                "googleResponse";
-
-            form.style.display =
-                "none";
-
-
-            const input =
-                document.createElement("input");
-
-            input.type = "hidden";
-
-            input.name = "id";
-
-            input.value = "CHOR002";
-
-
-            form.appendChild(input);
-
-            document.body.appendChild(form);
-
-
-            /*
-             * IFRAME INVISIBLE
-             */
-
-            let iframe =
-                document.getElementById(
-                    "googleResponse"
-                );
-
-
-            if (!iframe) {
-
-                iframe =
-                    document.createElement("iframe");
-
-                iframe.id =
-                    "googleResponse";
-
-                iframe.name =
-                    "googleResponse";
-
-                iframe.style.display =
-                    "none";
-
-                document.body.appendChild(
-                    iframe
-                );
-
-            }
-
-
-            /*
-             * ENVOI
-             */
-
-            form.submit();
-
-
-            result.innerHTML =
-                "✅ Requête envoyée.<br><br>" +
-                "Vérifiez maintenant Google Sheets.";
-
-        });
-
-    </script>
+    </a>
 
 </body>
+
 </html>
