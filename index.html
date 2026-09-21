@@ -2,29 +2,480 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test CHOR002</title>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>CHOEUR DE PIERRE - Suis ta voix</title>
+
+<script src="https://unpkg.com/html5-qrcode"
+        type="text/javascript"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    background: #f2f2f2;
+    color: #222;
+    text-align: center;
+}
+
+header {
+    background: #222;
+    color: white;
+    padding: 28px 20px 24px;
+}
+
+.title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.subtitle {
+    margin-top: 6px;
+    font-size: 18px;
+    opacity: 0.8;
+    font-style: italic;
+}
+
+#startButton {
+    display: block;
+    margin: 28px auto 20px;
+    padding: 18px 30px;
+    font-size: 20px;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    background: #222;
+    color: white;
+
+    box-shadow:
+        0 4px 10px rgba(0,0,0,0.15);
+}
+
+#startButton:active {
+    transform: scale(0.97);
+}
+
+#scanner {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+#result {
+    margin: 20px auto;
+    max-width: 500px;
+    padding: 24px 20px;
+    border-radius: 16px;
+    background: white;
+    font-size: 20px;
+    min-height: 120px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.success {
+    background: #d9f7df !important;
+    color: #145c25;
+}
+
+.error {
+    background: #ffdede !important;
+    color: #8a1515;
+}
+
+.name {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.voice {
+    font-size: 22px;
+    font-weight: 500;
+}
+
+.instruction {
+    margin: 12px 20px 25px;
+    color: #666;
+    font-size: 16px;
+}
+
+</style>
+
 </head>
+
 
 <body>
 
-    <h1>Test connexion</h1>
 
-    <a
-        href="https://script.google.com/macros/s/AKfycbzhS0cG7ASv2IMpYmEeTJk0r-jgMB3l7o93LgB5vut5K7KNGsNE3xI8YM6C-1dvCs5olQ/exec?id=CHOR002"
-        style="
-            display:inline-block;
-            padding:20px 30px;
-            background:#222;
-            color:white;
-            text-decoration:none;
-            border-radius:10px;
-            font-size:20px;
-        "
-    >
-        TEST CHOR002
-    </a>
+<header>
+
+    <div class="title">
+        CHOEUR DE PIERRE
+    </div>
+
+    <div class="subtitle">
+        Suis ta voix
+    </div>
+
+</header>
+
+
+<button id="startButton">
+    📷 Démarrer la caméra
+</button>
+
+
+<div id="scanner"></div>
+
+
+<div id="result">
+
+    <div>
+        Appuyez sur « Démarrer la caméra »
+    </div>
+
+</div>
+
+
+<div class="instruction">
+    Présentez votre QR code devant la caméra
+</div>
+
+
+<script>
+
+
+/* =========================
+   GOOGLE APPS SCRIPT
+========================= */
+
+const APPS_SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbzhS0cG7ASv2IMpYmEeTJk0r-jgMB3l7o93LgB5vut5K7KNGsNE3xI8YM6C-1dvCs5olQ/exec";
+
+
+let scanner = null;
+
+let dernierScan = null;
+
+let scanEnCours = false;
+
+
+/* =========================
+   SON
+========================= */
+
+function jouerSon() {
+
+    try {
+
+        const audioContext =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+        const oscillator =
+            audioContext.createOscillator();
+
+        const gain =
+            audioContext.createGain();
+
+        oscillator.connect(gain);
+
+        gain.connect(audioContext.destination);
+
+        oscillator.frequency.value = 880;
+
+        gain.gain.setValueAtTime(
+            0.15,
+            audioContext.currentTime
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            audioContext.currentTime + 0.25
+        );
+
+        oscillator.start();
+
+        oscillator.stop(
+            audioContext.currentTime + 0.25
+        );
+
+    }
+
+    catch (e) {
+
+        console.log("Son indisponible");
+
+    }
+
+}
+
+
+/* =========================
+   DÉMARRER LA CAMÉRA
+========================= */
+
+document
+.getElementById("startButton")
+.addEventListener("click", function() {
+
+    const button = this;
+
+    button.disabled = true;
+
+    button.innerText =
+        "📷 Démarrage...";
+
+
+    const result =
+        document.getElementById("result");
+
+    result.className = "";
+
+    result.innerHTML =
+        "Autorisation de la caméra...";
+
+
+    scanner =
+        new Html5Qrcode("scanner");
+
+
+    scanner.start(
+
+        {
+            facingMode: "environment"
+        },
+
+        {
+            fps: 10,
+
+            qrbox: {
+                width: 250,
+                height: 250
+            }
+        },
+
+        traiterQR,
+
+        function(errorMessage) {
+
+            // Erreurs normales du scanner ignorées
+
+        }
+
+    )
+
+    .then(function() {
+
+        button.style.display =
+            "none";
+
+        result.className = "";
+
+        result.innerHTML =
+            "📷 Caméra active";
+
+    })
+
+    .catch(function(error) {
+
+        console.error(error);
+
+        button.disabled = false;
+
+        button.innerText =
+            "📷 Réessayer";
+
+        result.className =
+            "error";
+
+        result.innerHTML =
+            "❌ Impossible d'ouvrir la caméra<br><br>" +
+            "Vérifiez l'autorisation de l'appareil photo.";
+
+    });
+
+});
+
+
+/* =========================
+   TRAITEMENT DU QR
+========================= */
+
+function traiterQR(qrCodeMessage) {
+
+    if (scanEnCours)
+        return;
+
+    if (dernierScan === qrCodeMessage)
+        return;
+
+
+    scanEnCours = true;
+
+    dernierScan = qrCodeMessage;
+
+
+    const result =
+        document.getElementById("result");
+
+
+    result.className = "";
+
+    result.innerHTML =
+        "📡 Enregistrement...";
+
+
+    /* =========================
+       FORMULAIRE INVISIBLE
+    ========================= */
+
+    const form =
+        document.createElement("form");
+
+    form.method = "GET";
+
+    form.action =
+        APPS_SCRIPT_URL;
+
+    form.target =
+        "googleResponse";
+
+    form.style.display =
+        "none";
+
+
+    const input =
+        document.createElement("input");
+
+    input.type = "hidden";
+
+    input.name = "id";
+
+    input.value = qrCodeMessage;
+
+
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+
+
+    /* =========================
+       IFRAME INVISIBLE
+    ========================= */
+
+    let iframe =
+        document.getElementById(
+            "googleResponse"
+        );
+
+
+    if (!iframe) {
+
+        iframe =
+            document.createElement("iframe");
+
+        iframe.id =
+            "googleResponse";
+
+        iframe.name =
+            "googleResponse";
+
+        iframe.style.display =
+            "none";
+
+        document.body.appendChild(
+            iframe
+        );
+
+    }
+
+
+    /* =========================
+       ENVOI À GOOGLE
+    ========================= */
+
+    form.submit();
+
+
+    /*
+     * Nous ne lisons volontairement
+     * PAS la réponse de Google.
+     *
+     * Le navigateur interdit de lire
+     * une réponse provenant d'un autre
+     * domaine.
+     */
+
+
+    setTimeout(function() {
+
+        jouerSon();
+
+        result.className =
+            "success";
+
+        result.innerHTML =
+
+            '<div class="name">' +
+            '✓ Présence enregistrée' +
+            '</div>' +
+
+            '<div class="voice">' +
+            'QR : ' +
+            qrCodeMessage +
+            '</div>';
+
+
+        scanEnCours = false;
+
+    }, 1500);
+
+
+    /* =========================
+       PRÉPARER LE SCAN SUIVANT
+    ========================= */
+
+    setTimeout(function() {
+
+        dernierScan = null;
+
+        result.className = "";
+
+        result.innerHTML =
+            "📷 Présentez un QR code";
+
+    }, 4000);
+
+}
+
+</script>
+
 
 </body>
 
